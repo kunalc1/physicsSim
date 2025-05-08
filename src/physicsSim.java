@@ -9,6 +9,7 @@ public class physicsSim {
     public ArrayList<Body> bodies = new ArrayList<Body>();
     public boolean gravityEnabled = false;
     public double GRAVITY = 0.2;
+    public double ELASTICITY = 1.0; // Default elasticity (100%)
 
     public physicsSim(int w, int h, boolean gravity) {
         f = new myFrame(w, h);
@@ -21,6 +22,7 @@ public class physicsSim {
         f.getGravityToggle().setSelected(gravityEnabled);
         f.getGravityToggle().setText(gravityEnabled ? "Gravity: ON" : "Gravity: OFF");
         f.getGravitySlider().setValue((int)(GRAVITY * 100));
+        f.getElasticitySlider().setValue((int)(ELASTICITY * 100));
 
         f.getGravityToggle().addActionListener(e -> {
             gravityEnabled = f.getGravityToggle().isSelected();
@@ -28,6 +30,10 @@ public class physicsSim {
         
         f.getGravitySlider().addChangeListener(e -> {
             GRAVITY = f.getGravitySlider().getValue() / 100.0;
+        });
+
+        f.getElasticitySlider().addChangeListener(e -> {
+            ELASTICITY = f.getElasticitySlider().getValue() / 100.0;
         });
     }
 
@@ -59,7 +65,7 @@ public class physicsSim {
     public void handleGravity() {
         for (int i = 0; i < bodies.size(); i++) {
             double[] tmp = bodies.get(i).getVels();
-            tmp[1] += GRAVITY; // Uses the current value of GRAVITY
+            tmp[1] += GRAVITY;
             Body replace = new Body(bodies.get(i).getCoords(), tmp, bodies.get(i).getMass(), bodies.get(i).getR());
             bodies.set(i, replace);
         }
@@ -98,10 +104,11 @@ public class physicsSim {
         double v1nNew = ((m1-m2)*v1n + 2*m2*v2n) / (m1+m2);
         double v2nNew = ((m2-m1)*v2n + 2*m1*v1n) / (m1+m2);
 
-        vel1[0] = vel1[0] + nx*(v1nNew-v1n);
-        vel1[1] = vel1[1] + ny*(v1nNew-v1n);
-        vel2[0] = vel2[0] + nx*(v2nNew-v2n);
-        vel2[1] = vel2[1] + ny*(v2nNew-v2n);
+        // Apply elasticity factor to the velocity changes
+        vel1[0] = vel1[0] + nx*(v1nNew-v1n) * ELASTICITY;
+        vel1[1] = vel1[1] + ny*(v1nNew-v1n) * ELASTICITY;
+        vel2[0] = vel2[0] + nx*(v2nNew-v2n) * ELASTICITY;
+        vel2[1] = vel2[1] + ny*(v2nNew-v2n) * ELASTICITY;
 
         b1.setVels(vel1);
         b2.setVels(vel2);
@@ -127,19 +134,22 @@ public class physicsSim {
 
             if (pos[0] - r < 0) {
                 pos[0] = r;
-                vel[0] = -vel[0];
+                vel[0] = -vel[0] * ELASTICITY;
             } else if (pos[0] + r + 200 > width) {
                 pos[0] = width - r - 200;
-                vel[0] = -vel[0];
+                vel[0] = -vel[0] * ELASTICITY;
             }
             
             if (pos[1] - r < 0) {
                 pos[1] = r;
-                vel[1] = -vel[1];
+                vel[1] = -vel[1] * ELASTICITY;
             } else if (pos[1] + r > height) {
                 pos[1] = height - r;
-                if (!gravityEnabled) vel[1] = -vel[1];
-                else vel[1] = -vel[1] * 0.80;
+                if (!gravityEnabled) {
+                    vel[1] = -vel[1] * ELASTICITY;
+                } else {
+                    vel[1] = -vel[1] * ELASTICITY;
+                }
             }
             
             b.setCoords(pos);

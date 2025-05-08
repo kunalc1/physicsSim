@@ -10,7 +10,9 @@ public class myFrame extends JFrame {
     private JPanel controlPanel;
     private JToggleButton gravityToggle;
     private JSlider gravitySlider;
+    private JSlider elasticitySlider;
     private JLabel gravityValueLabel;
+    private JLabel elasticityValueLabel;
 
     public myFrame(int w, int h) {
         // Set up layout with drawing panel and control panel
@@ -51,7 +53,11 @@ public class myFrame extends JFrame {
 
         JPanel sliderPanel = new JPanel();
         sliderPanel.setLayout(new BoxLayout(sliderPanel, BoxLayout.Y_AXIS));
-        sliderPanel.setBorder(BorderFactory.createTitledBorder("Gravity Strength"));
+        sliderPanel.setBorder(BorderFactory.createTitledBorder("Physical Variables"));
+        
+        // Add gravity label
+        JLabel gravityLabel = new JLabel("Gravity Strength:");
+        gravityLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
         
         gravitySlider = new JSlider(JSlider.HORIZONTAL, 0, 100, 20);
         gravitySlider.setMajorTickSpacing(20);
@@ -66,10 +72,37 @@ public class myFrame extends JFrame {
             double value = gravitySlider.getValue() / 100.0;
             gravityValueLabel.setText("Value: " + String.format("%.2f", value));
         });
+
+        // Add elasticity label
+        JLabel elasticityLabel = new JLabel("Elasticity Coefficient:");
+        elasticityLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
+
+        elasticitySlider = new JSlider(JSlider.HORIZONTAL, 0, 100, 100);
+        elasticitySlider.setMajorTickSpacing(20);
+        elasticitySlider.setMinorTickSpacing(5);
+        elasticitySlider.setPaintTicks(true);
+        elasticitySlider.setPaintLabels(true);
+
+        elasticityValueLabel = new JLabel("Value: 1.00");
+        elasticityValueLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
+
+        elasticitySlider.addChangeListener(e -> {
+            double value = elasticitySlider.getValue() / 100.0;
+            elasticityValueLabel.setText("Value: " + String.format("%.2f", value));
+        });
+
         
+        sliderPanel.add(gravityLabel);
+        sliderPanel.add(Box.createRigidArea(new Dimension(0, 5)));
         sliderPanel.add(gravitySlider);
         sliderPanel.add(Box.createRigidArea(new Dimension(0, 5)));
         sliderPanel.add(gravityValueLabel);
+        sliderPanel.add(Box.createRigidArea(new Dimension(0, 15)));
+        sliderPanel.add(elasticityLabel);
+        sliderPanel.add(Box.createRigidArea(new Dimension(0, 5)));
+        sliderPanel.add(elasticitySlider);
+        sliderPanel.add(Box.createRigidArea(new Dimension(0, 5)));
+        sliderPanel.add(elasticityValueLabel);
 
         controlPanel.add(Box.createRigidArea(new Dimension(0, 10)));
         controlPanel.add(gravityToggle);
@@ -84,6 +117,10 @@ public class myFrame extends JFrame {
     
     public JSlider getGravitySlider() {
         return gravitySlider;
+    }
+    
+    public JSlider getElasticitySlider() {
+        return elasticitySlider;
     }
 
     public void addBody(Body b) {
