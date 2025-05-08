@@ -8,24 +8,32 @@ public class physicsSim {
     public Graphics g;
     public ArrayList<Body> bodies = new ArrayList<Body>();
     public boolean gravityEnabled = false;
+    public boolean gravityBetweenObjectsEnabled = false;
     public double GRAVITY = 0.2;
-    public double ELASTICITY = 1.0; // Default elasticity (100%)
+    public double ELASTICITY = 1.0;
 
-    public physicsSim(int w, int h, boolean gravity) {
+    public physicsSim(int w, int h, boolean gravity, boolean gravityBetweenObjects) {
         f = new myFrame(w, h);
         g = f.getGraphics();
         gravityEnabled = gravity;
+        gravityBetweenObjectsEnabled = gravityBetweenObjects;
         setupControls();
     }
     
     private void setupControls() {
         f.getGravityToggle().setSelected(gravityEnabled);
         f.getGravityToggle().setText(gravityEnabled ? "Gravity: ON" : "Gravity: OFF");
+        f.getGravityBetweenObjectsToggle().setSelected(gravityBetweenObjectsEnabled);
+        f.getGravityBetweenObjectsToggle().setText(gravityBetweenObjectsEnabled ? "Gravity_obj: ON" : "Gravity_obj: OFF");
         f.getGravitySlider().setValue((int)(GRAVITY * 100));
         f.getElasticitySlider().setValue((int)(ELASTICITY * 100));
 
         f.getGravityToggle().addActionListener(e -> {
             gravityEnabled = f.getGravityToggle().isSelected();
+        });
+
+        f.getGravityBetweenObjectsToggle().addActionListener(e -> {
+            gravityBetweenObjectsEnabled = f.getGravityBetweenObjectsToggle().isSelected();
         });
         
         f.getGravitySlider().addChangeListener(e -> {
@@ -58,6 +66,9 @@ public class physicsSim {
         if (gravityEnabled) {
             handleGravity();
         }
+        if (gravityBetweenObjectsEnabled) {
+            handleGravityBetweenObjects();
+        }
         handleCollisions();
         handleBoundaries();
     }
@@ -68,6 +79,39 @@ public class physicsSim {
             tmp[1] += GRAVITY;
             Body replace = new Body(bodies.get(i).getCoords(), tmp, bodies.get(i).getMass(), bodies.get(i).getR());
             bodies.set(i, replace);
+        }
+    }
+
+    public void handleGravityBetweenObjects() {
+        for (int i = 0; i < bodies.size(); i++){
+            for (int j = i + 1; j < bodies.size(); j++){
+                Body b1 = bodies.get(i);
+                Body b2 = bodies.get(j);
+
+                double[] pos1 = b1.getCoords();
+                double[] pos2 = b2.getCoords();
+
+                double dx = pos2[0] - pos1[0];
+                double dy = pos2[1] - pos1[1];
+                double distance = Math.sqrt(dx*dx + dy*dy);
+
+                if (distance > 0) {
+                    double force = 100 * (b1.getMass() * b2.getMass()) / (distance * distance);
+                    double fx = force * dx / distance;
+                    double fy = force * dy / distance;
+
+                    double[] vel1 = b1.getVels();
+                    double[] vel2 = b2.getVels();
+
+                    vel1[0] += fx / b1.getMass();
+                    vel1[1] += fy / b1.getMass();
+                    vel2[0] -= fx / b2.getMass();
+                    vel2[1] -= fy / b2.getMass();
+
+                    b1.setVels(vel1);
+                    b2.setVels(vel2);
+                }
+            }
         }
     }
 
@@ -158,11 +202,14 @@ public class physicsSim {
     }
 
     public static void main(String[] args) {
-        physicsSim p = new physicsSim(800, 800, false);
+        physicsSim p = new physicsSim(800, 800, false, false);
         
         p.addBody(new Body(new double[]{400, 400}, new double[]{1, 0.5}, 10, 50));
         p.addBody(new Body(new double[]{200, 300}, new double[]{-1, 0.2}, 5, 30));
         p.addBody(new Body(new double[]{500, 200}, new double[]{0.2, 1.3}, 8, 40));
+//
+//        p.addBody(new Body(new double[]{400, 400}, new double[]{0, -1.5}, 10, 50));
+//        p.addBody(new Body(new double[]{400, 200}, new double[]{0, 0}, 10, 50));
 
         javax.swing.Timer timer = new javax.swing.Timer(8, e -> {
             p.update();

@@ -9,6 +9,7 @@ public class myFrame extends JFrame {
     private DrawingPanel drawingPanel;
     private JPanel controlPanel;
     private JToggleButton gravityToggle;
+    private JToggleButton gravityBetweenObjectsToggle;
     private JSlider gravitySlider;
     private JSlider elasticitySlider;
     private JLabel gravityValueLabel;
@@ -48,6 +49,16 @@ public class myFrame extends JFrame {
                 gravityToggle.setText("Gravity: ON");
             } else {
                 gravityToggle.setText("Gravity: OFF");
+            }
+        });
+
+        gravityBetweenObjectsToggle = new JToggleButton("Gravity_obj: OFF");
+        gravityBetweenObjectsToggle.setAlignmentX(Component.CENTER_ALIGNMENT);
+        gravityBetweenObjectsToggle.addActionListener(e -> {
+            if (gravityBetweenObjectsToggle.isSelected()) {
+                gravityBetweenObjectsToggle.setText("Gravity_obj: ON");
+            } else {
+                gravityBetweenObjectsToggle.setText("Gravity_obj: OFF");
             }
         });
 
@@ -106,6 +117,8 @@ public class myFrame extends JFrame {
 
         controlPanel.add(Box.createRigidArea(new Dimension(0, 10)));
         controlPanel.add(gravityToggle);
+        controlPanel.add(Box.createRigidArea(new Dimension(0, 10)));
+        controlPanel.add(gravityBetweenObjectsToggle);
         controlPanel.add(Box.createRigidArea(new Dimension(0, 20)));
         controlPanel.add(sliderPanel);
         controlPanel.add(Box.createVerticalGlue());
@@ -113,6 +126,10 @@ public class myFrame extends JFrame {
 
     public JToggleButton getGravityToggle() {
         return gravityToggle;
+    }
+
+    public JToggleButton getGravityBetweenObjectsToggle() {
+        return gravityBetweenObjectsToggle;
     }
     
     public JSlider getGravitySlider() {
