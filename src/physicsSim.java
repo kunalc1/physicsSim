@@ -5,10 +5,13 @@ public class physicsSim {
     public myFrame f;
     public Graphics g;
     public ArrayList<Body> bodies = new ArrayList<Body>();
+    public boolean gravityEnabled = false;
+    public final double GRAVITY = 0.2;
 
-    public physicsSim(int w, int h){
+    public physicsSim(int w, int h, boolean gravity) {
         f = new myFrame(w, h);
         g = f.getGraphics();
+        gravityEnabled = gravity;
     }
 
     public void addBodies(){
@@ -29,8 +32,20 @@ public class physicsSim {
     public void update(){
         f.repaint();
         f.move();
+        if (gravityEnabled) {
+            handleGravity();
+        }
         handleCollisions();
         handleBoundaries();
+    }
+
+    public void handleGravity() {
+        for (int i = 0; i < bodies.size(); i++) {
+            double[] tmp = bodies.get(i).getVels();
+            tmp[1] += GRAVITY;
+            Body replace = new Body(bodies.get(i).getCoords(), tmp, bodies.get(i).getMass(), bodies.get(i).getR());
+            bodies.set(i, replace);
+        }
     }
 
     public void handleCollisions() {
@@ -85,7 +100,6 @@ public class physicsSim {
     }
     
     public void handleBoundaries() {
-        // Get the content pane dimensions instead of frame dimensions
         int width = f.getContentPane().getWidth();
         int height = f.getContentPane().getHeight();
         
@@ -107,7 +121,8 @@ public class physicsSim {
                 vel[1] = -vel[1];
             } else if (pos[1] + r > height) {
                 pos[1] = height - r;
-                vel[1] = -vel[1];
+                if (!gravityEnabled) vel[1] = -vel[1];
+                else vel[1] = -vel[1] * 0.80;
             }
             
             b.setCoords(pos);
@@ -116,7 +131,7 @@ public class physicsSim {
     }
 
     public static void main(String[] args) {
-        physicsSim p = new physicsSim(800, 800);
+        physicsSim p = new physicsSim(800, 800, true);
         
 
         p.addBody(new Body(new double[]{400, 400}, new double[]{1, 0.5}, 10, 50));
