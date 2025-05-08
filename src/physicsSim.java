@@ -1,17 +1,34 @@
 import java.awt.*;
 import java.util.ArrayList;
+import javax.swing.event.ChangeEvent;
+import javax.swing.event.ChangeListener;
 
 public class physicsSim {
     public myFrame f;
     public Graphics g;
     public ArrayList<Body> bodies = new ArrayList<Body>();
     public boolean gravityEnabled = false;
-    public final double GRAVITY = 0.2;
+    public double GRAVITY = 0.2;
 
     public physicsSim(int w, int h, boolean gravity) {
         f = new myFrame(w, h);
         g = f.getGraphics();
         gravityEnabled = gravity;
+        setupControls();
+    }
+    
+    private void setupControls() {
+        f.getGravityToggle().setSelected(gravityEnabled);
+        f.getGravityToggle().setText(gravityEnabled ? "Gravity: ON" : "Gravity: OFF");
+        f.getGravitySlider().setValue((int)(GRAVITY * 100));
+
+        f.getGravityToggle().addActionListener(e -> {
+            gravityEnabled = f.getGravityToggle().isSelected();
+        });
+        
+        f.getGravitySlider().addChangeListener(e -> {
+            GRAVITY = f.getGravitySlider().getValue() / 100.0;
+        });
     }
 
     public void addBodies(){
@@ -42,7 +59,7 @@ public class physicsSim {
     public void handleGravity() {
         for (int i = 0; i < bodies.size(); i++) {
             double[] tmp = bodies.get(i).getVels();
-            tmp[1] += GRAVITY;
+            tmp[1] += GRAVITY; // Uses the current value of GRAVITY
             Body replace = new Body(bodies.get(i).getCoords(), tmp, bodies.get(i).getMass(), bodies.get(i).getR());
             bodies.set(i, replace);
         }
@@ -111,8 +128,8 @@ public class physicsSim {
             if (pos[0] - r < 0) {
                 pos[0] = r;
                 vel[0] = -vel[0];
-            } else if (pos[0] + r > width) {
-                pos[0] = width - r;
+            } else if (pos[0] + r + 200 > width) {
+                pos[0] = width - r - 200;
                 vel[0] = -vel[0];
             }
             
@@ -131,19 +148,15 @@ public class physicsSim {
     }
 
     public static void main(String[] args) {
-        physicsSim p = new physicsSim(800, 800, true);
+        physicsSim p = new physicsSim(800, 800, false);
         
-
         p.addBody(new Body(new double[]{400, 400}, new double[]{1, 0.5}, 10, 50));
         p.addBody(new Body(new double[]{200, 300}, new double[]{-1, 0.2}, 5, 30));
         p.addBody(new Body(new double[]{500, 200}, new double[]{0.2, 1.3}, 8, 40));
-//        p.addBody(new Body(new double[]{400, 400}, new double[]{-0.5, 0}, 100, 10));
-//        p.addBody(new Body(new double[]{200, 400}, new double[]{0, 0}, 1, 10));
 
         javax.swing.Timer timer = new javax.swing.Timer(8, e -> {
             p.update();
         });
         timer.start();
-
     }
 }

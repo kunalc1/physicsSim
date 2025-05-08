@@ -7,12 +7,23 @@ import java.util.ArrayList;
 public class myFrame extends JFrame {
     public ArrayList<Body> bodies = new ArrayList<Body>();
     private DrawingPanel drawingPanel;
+    private JPanel controlPanel;
+    private JToggleButton gravityToggle;
+    private JSlider gravitySlider;
+    private JLabel gravityValueLabel;
 
     public myFrame(int w, int h) {
-        drawingPanel = new DrawingPanel();
-        setContentPane(drawingPanel);
+        // Set up layout with drawing panel and control panel
+        setLayout(new BorderLayout());
         
-        setSize(w, h);
+        drawingPanel = new DrawingPanel();
+        add(drawingPanel, BorderLayout.CENTER);
+        
+        // Create and configure control panel
+        setupControlPanel();
+        add(controlPanel, BorderLayout.EAST);
+        
+        setSize(w + controlPanel.getPreferredSize().width, h);
         setVisible(true);
         addWindowListener(new WindowAdapter() {
             @Override
@@ -20,6 +31,59 @@ public class myFrame extends JFrame {
                 System.exit(0);
             }
         });
+    }
+    
+    private void setupControlPanel() {
+        controlPanel = new JPanel();
+        controlPanel.setPreferredSize(new Dimension(200, getHeight()));
+        controlPanel.setBorder(BorderFactory.createTitledBorder("Controls"));
+        controlPanel.setLayout(new BoxLayout(controlPanel, BoxLayout.Y_AXIS));
+
+        gravityToggle = new JToggleButton("Gravity: OFF");
+        gravityToggle.setAlignmentX(Component.CENTER_ALIGNMENT);
+        gravityToggle.addActionListener(e -> {
+            if (gravityToggle.isSelected()) {
+                gravityToggle.setText("Gravity: ON");
+            } else {
+                gravityToggle.setText("Gravity: OFF");
+            }
+        });
+
+        JPanel sliderPanel = new JPanel();
+        sliderPanel.setLayout(new BoxLayout(sliderPanel, BoxLayout.Y_AXIS));
+        sliderPanel.setBorder(BorderFactory.createTitledBorder("Gravity Strength"));
+        
+        gravitySlider = new JSlider(JSlider.HORIZONTAL, 0, 100, 20);
+        gravitySlider.setMajorTickSpacing(20);
+        gravitySlider.setMinorTickSpacing(5);
+        gravitySlider.setPaintTicks(true);
+        gravitySlider.setPaintLabels(true);
+        
+        gravityValueLabel = new JLabel("Value: 0.2");
+        gravityValueLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
+        
+        gravitySlider.addChangeListener(e -> {
+            double value = gravitySlider.getValue() / 100.0;
+            gravityValueLabel.setText("Value: " + String.format("%.2f", value));
+        });
+        
+        sliderPanel.add(gravitySlider);
+        sliderPanel.add(Box.createRigidArea(new Dimension(0, 5)));
+        sliderPanel.add(gravityValueLabel);
+
+        controlPanel.add(Box.createRigidArea(new Dimension(0, 10)));
+        controlPanel.add(gravityToggle);
+        controlPanel.add(Box.createRigidArea(new Dimension(0, 20)));
+        controlPanel.add(sliderPanel);
+        controlPanel.add(Box.createVerticalGlue());
+    }
+
+    public JToggleButton getGravityToggle() {
+        return gravityToggle;
+    }
+    
+    public JSlider getGravitySlider() {
+        return gravitySlider;
     }
 
     public void addBody(Body b) {
