@@ -14,6 +14,15 @@ public class physicsSim {
     public boolean gravityBetweenObjectsEnabled;
     public double GRAVITY = 0.2;
     public double ELASTICITY = 1.0;
+    
+    // Constants to avoid magic numbers
+    private static final double GRAVITY_FORCE_SCALE = 10.0;
+    private static final double OBJECT_GRAVITY_SCALE = 100.0;
+    private static final double FORCE_ARROW_SCALE = 10000.0;
+    
+    // Reuse arrays to avoid garbage collection
+    private final double[] tempPos = new double[2];
+    private final double[] tempVel = new double[2];
 
     public physicsSim(int w, int h, boolean gravity, boolean gravityBetweenObjects) {
         f = new myFrame(w, h);
@@ -75,8 +84,6 @@ public class physicsSim {
 
     public void update(){
         forces.clear();
-        f.repaint();
-        f.move();
         if (gravityEnabled) {
             handleGravity();
         }
@@ -85,65 +92,77 @@ public class physicsSim {
         }
         handleCollisions();
         handleBoundaries();
-        if (showForcesBetweenObjectsEnabled) f.forces = forces;
-        else f.forces = new ArrayList<>();
+        
+        // Only update forces in UI if they're visible
+        f.forces = showForcesBetweenObjectsEnabled ? forces : new ArrayList<>();
+        
+        // Move bodies after all physics are calculated
+        f.move();
+        
+        // Repaint at the end after all updates
+        f.repaint();
     }
 
     public void handleGravity() {
-        for (int i = 0; i < bodies.size(); i++) {
-            double[] tmp = bodies.get(i).getVels();
-            tmp[1] += GRAVITY;
-            Body replace = new Body(bodies.get(i).getCoords(), tmp, bodies.get(i).getMass(), bodies.get(i).getR());
-            bodies.set(i, replace);
-            forces.add(new Arrow(bodies.get(i).getCoords(), Math.PI / 2,  10 * bodies.get(i).getMass()));
+        for (Body body : bodies) {
+            double[] vel = body.getVels();
+            vel[1] += GRAVITY;
+            
+            // Only add forces if they're being shown
+            if (showForcesBetweenObjectsEnabled) {
+                forces.add(new Arrow(body.getCoords(), Math.PI / 2, GRAVITY_FORCE_SCALE * body.getMass()));
+            }
         }
     }
 
     public void handleGravityBetweenObjects() {
-        for (int i = 0; i < bodies.size(); i++){
-            for (int j = i + 1; j < bodies.size(); j++){
-                Body b1 = bodies.get(i);
+        int size = bodies.size();
+        for (int i = 0; i < size; i++) {
+            Body b1 = bodies.get(i);
+            double[] pos1 = b1.getCoords();
+            double[] vel1 = b1.getVels();
+            double m1 = b1.getMass();
+            
+            for (int j = i + 1; j < size; j++) {
                 Body b2 = bodies.get(j);
-
-                double[] pos1 = b1.getCoords();
                 double[] pos2 = b2.getCoords();
+                double[] vel2 = b2.getVels();
+                double m2 = b2.getMass();
 
                 double dx = pos2[0] - pos1[0];
                 double dy = pos2[1] - pos1[1];
-                double distance = Math.sqrt(dx*dx + dy*dy);
+                double distanceSquared = dx*dx + dy*dy;
+                double distance = Math.sqrt(distanceSquared);
 
                 if (distance > 0) {
-                    double force = 100 * (b1.getMass() * b2.getMass()) / (distance * distance);
+                    double force = OBJECT_GRAVITY_SCALE * (m1 * m2) / distanceSquared;
                     double fx = force * dx / distance;
                     double fy = force * dy / distance;
 
-                    double[] vel1 = b1.getVels();
-                    double[] vel2 = b2.getVels();
+                    vel1[0] += fx / m1;
+                    vel1[1] += fy / m1;
+                    vel2[0] -= fx / m2;
+                    vel2[1] -= fy / m2;
 
-                    vel1[0] += fx / b1.getMass();
-                    vel1[1] += fy / b1.getMass();
-                    vel2[0] -= fx / b2.getMass();
-                    vel2[1] -= fy / b2.getMass();
-
-                    b1.setVels(vel1);
-                    b2.setVels(vel2);
-
-                    forces.add(new Arrow(pos1, Math.atan2(dy, dx), 10000 * b1.getMass() * b2.getMass() / (dx*dx + dy*dy)));
-                    forces.add(new Arrow(pos2, Math.atan2(-dy, -dx),  10000 * b1.getMass() * b2.getMass() / (dx*dx + dy*dy)));
+                    // Only calculate and add force arrows if they're being shown
+                    if (showForcesBetweenObjectsEnabled) {
+                        double forceArrowLength = FORCE_ARROW_SCALE * m1 * m2 / distanceSquared;
+                        forces.add(new Arrow(pos1, Math.atan2(dy, dx), forceArrowLength));
+                        forces.add(new Arrow(pos2, Math.atan2(-dy, -dx), forceArrowLength));
+                    }
                 }
             }
         }
     }
 
     public void handleCollisions() {
-        for (int i = 0; i < bodies.size(); i++) {
-            for (int j = i + 1; j < bodies.size(); j++) {
-                Body b1 = bodies.get(i);
+        int size = bodies.size();
+        for (int i = 0; i < size; i++) {
+            Body b1 = bodies.get(i);
+            for (int j = i + 1; j < size; j++) {
                 Body b2 = bodies.get(j);
-
                 if (b1.isColliding(b2)) {
                     resolveCollision(b1, b2);
-//                    collisions++;
                 }
             }
         }
@@ -160,6 +179,17 @@ public class physicsSim {
         double dx = pos2[0] - pos1[0];
         double dy = pos2[1] - pos1[1];
         double distance = Math.sqrt(dx*dx + dy*dy);
+        
+        // Avoid division by zero
+        if (distance == 0) {
+            // Small position adjustment to avoid division by zero
+            pos1[0] -= 0.1;
+            pos2[0] += 0.1;
+            dx = pos2[0] - pos1[0];
+            dy = pos2[1] - pos1[1];
+            distance = Math.sqrt(dx*dx + dy*dy);
+        }
+        
         double nx = dx / distance;
         double ny = dy / distance;
 
@@ -175,17 +205,12 @@ public class physicsSim {
         vel2[0] = vel2[0] + nx*(v2nNew-v2n) * ELASTICITY;
         vel2[1] = vel2[1] + ny*(v2nNew-v2n) * ELASTICITY;
 
-        b1.setVels(vel1);
-        b2.setVels(vel2);
-
+        // Repositioning to avoid overlapping
         double overlap = b1.getR() + b2.getR() - distance;
         pos1[0] -= overlap * nx * 0.5;
         pos1[1] -= overlap * ny * 0.5;
         pos2[0] += overlap * nx * 0.5;
         pos2[1] += overlap * ny * 0.5;
-
-        b1.setCoords(pos1);
-        b2.setCoords(pos2);
     }
 
     public void handleBoundaries() {
@@ -197,30 +222,24 @@ public class physicsSim {
             double[] vel = b.getVels();
             double r = b.getR();
 
+            // Handle x-axis boundaries
             if (pos[0] - r < 0) {
                 pos[0] = r;
                 vel[0] = -vel[0] * ELASTICITY;
-//                collisions++;
             }
             else if (pos[0] + r + 200 > width) {
                 pos[0] = width - r - 200;
                 vel[0] = -vel[0] * ELASTICITY;
             }
 
+            // Handle y-axis boundaries
             if (pos[1] - r < 0) {
                 pos[1] = r;
                 vel[1] = -vel[1] * ELASTICITY;
             } else if (pos[1] + r > height) {
                 pos[1] = height - r;
-                if (!gravityEnabled) {
-                    vel[1] = -vel[1] * ELASTICITY;
-                } else {
-                    vel[1] = -vel[1] * ELASTICITY;
-                }
+                vel[1] = -vel[1] * ELASTICITY;
             }
-
-            b.setCoords(pos);
-            b.setVels(vel);
         }
     }
 
@@ -231,16 +250,7 @@ public class physicsSim {
         p.addBody(new Body(new double[]{200, 300}, new double[]{-1, 0.2}, 5, 30));
         p.addBody(new Body(new double[]{500, 200}, new double[]{0.2, 1.3}, 8, 40));
 
-//        p.addBody(new Body(new double[]{260, 400}, new double[]{-0.25, 0}, 10000, 25));
-//        p.addBody(new Body(new double[]{200, 400}, new double[]{0, 0}, 1, 25));
-
-//        p.addForce(new Arrow(new double[]{400, 400}, Math.PI / 4, 100));
-
-
-        javax.swing.Timer timer = new javax.swing.Timer(8, e -> {
-            p.update();
-//            System.out.println(p.collisions);
-        });
+        javax.swing.Timer timer = new javax.swing.Timer(8, e -> p.update());
         timer.start();
     }
 }

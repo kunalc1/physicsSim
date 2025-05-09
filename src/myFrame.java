@@ -30,12 +30,7 @@ public class myFrame extends JFrame {
 
         setSize(w + controlPanel.getPreferredSize().width, h);
         setVisible(true);
-        addWindowListener(new WindowAdapter() {
-            @Override
-            public void windowClosing(WindowEvent e) {
-                System.exit(0);
-            }
-        });
+        setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
     }
 
     private void setupControlPanel() {
@@ -167,25 +162,33 @@ public class myFrame extends JFrame {
     }
 
     public void move() {
-        for (int i = 0; i < bodies.size(); i++){
-            Body temp = bodies.get(i);
-            temp.move();
-            bodies.set(i, temp);
+        // Update all body positions at once
+        for (Body body : bodies) {
+            body.move();
         }
     }
 
     private class DrawingPanel extends JPanel {
+        // Use double buffering for smoother rendering
         @Override
         protected void paintComponent(Graphics g) {
             super.paintComponent(g);
+            Graphics2D g2d = (Graphics2D) g;
+            
+            // Enable antialiasing for smoother drawing
+            g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
 
+            // Draw all bodies
             for (Body b: bodies) {
-                g.fillOval((int) (b.getCoords()[0] - b.getR()), (int) (b.getCoords()[1] - b.getR()),
+                g2d.fillOval((int) (b.getCoords()[0] - b.getR()), (int) (b.getCoords()[1] - b.getR()),
                         (int) (b.getR() * 2), (int) (b.getR() * 2));
             }
 
-            for (Arrow f : forces) {
-                f.draw(g);
+            // Draw forces if any
+            if (!forces.isEmpty()) {
+                for (Arrow f : forces) {
+                    f.draw(g2d);
+                }
             }
         }
     }

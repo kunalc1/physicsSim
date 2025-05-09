@@ -3,12 +3,15 @@ public class Body {
     private double[] vels;
     private double m;
     private double r;
+    // Cache for collision calculation
+    private double r2; // radius squared
 
     public Body(double[] coords, double[] vels, double m, double r) {
         this.coords = coords;
         this.vels = vels;
         this.m = m;
         this.r = r;
+        this.r2 = r * r; // Precalculate r²
     }
 
     public double[] getCoords() {
@@ -41,9 +44,14 @@ public class Body {
     }
 
     public boolean isColliding(Body other) {
-        double dx = this.coords[0] - other.getCoords()[0];
-        double dy = this.coords[1] - other.getCoords()[1];
-        double distance = Math.sqrt(dx * dx + dy * dy);
-        return distance <= (this.r + other.r);
+        double dx = this.coords[0] - other.coords[0];
+        double dy = this.coords[1] - other.coords[1];
+        
+        // First, a quick check using squared distance (avoid sqrt)
+        double sumRadii = this.r + other.r;
+        double distanceSquared = dx * dx + dy * dy;
+        
+        // Only calculate sqrt if necessary
+        return distanceSquared <= (sumRadii * sumRadii);
     }
 }
